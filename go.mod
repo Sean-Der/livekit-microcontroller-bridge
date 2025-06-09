@@ -5,7 +5,7 @@ go 1.24.2
 toolchain go1.24.3
 
 require (
-	github.com/golang-jwt/jwt/v4 v4.5.0
+	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/livekit/protocol v1.38.1-0.20250511053429-f8ea8179871e
 	github.com/livekit/server-sdk-go/v2 v2.8.2
 	github.com/pion/webrtc/v4 v4.1.1

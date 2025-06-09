@@ -14,6 +14,39 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// setupTestGlobals initializes global variables for testing and returns a cleanup function
+func setupTestGlobals(t *testing.T) func() {
+	// Save original global variable values
+	origLog := log
+	origLivekitTrack := livekitTrack
+	origEmbeddedTrack := embeddedTrack
+	
+	// Initialize required global variables for the test
+	var err error
+	
+	// Initialize logger
+	logger.InitFromConfig(&logger.Config{Level: "error"}, "test")
+	log = logger.GetLogger()
+	
+	// Initialize livekitTrack
+	livekitTrack, err = webrtc.NewTrackLocalStaticRTP(
+		webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus},
+		"audio", "pion",
+	)
+	require.NoError(t, err, "Failed to create test livekitTrack")
+	
+	// Initialize embeddedTrack
+	embeddedTrack, err = lksdk.NewLocalTrack(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus})
+	require.NoError(t, err, "Failed to create test embeddedTrack")
+	
+	// Return cleanup function
+	return func() {
+		log = origLog
+		livekitTrack = origLivekitTrack
+		embeddedTrack = origEmbeddedTrack
+	}
+}
+
 func TestNewAccessToken(t *testing.T) {
 	apiKey := "test_api_key"
 	apiSecret := "test_api_secret"
@@ -39,23 +72,8 @@ func TestNewAccessToken(t *testing.T) {
 }
 
 func TestConnectHandler(t *testing.T) {
-	// Initialize required global variables for the test
-	var err error
-	
-	// Initialize logger
-	logger.InitFromConfig(&logger.Config{Level: "error"}, "test")
-	log = logger.GetLogger()
-	
-	// Initialize livekitTrack
-	livekitTrack, err = webrtc.NewTrackLocalStaticRTP(
-		webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus},
-		"audio", "pion",
-	)
-	require.NoError(t, err, "Failed to create test livekitTrack")
-	
-	// Initialize embeddedTrack
-	embeddedTrack, err = lksdk.NewLocalTrack(webrtc.RTPCodecCapability{MimeType: webrtc.MimeTypeOpus})
-	require.NoError(t, err, "Failed to create test embeddedTrack")
+	cleanup := setupTestGlobals(t)
+	defer cleanup()
 
 	// Setup test app
 	app := &App{
@@ -100,6 +118,9 @@ a=fmtp:111 minptime=10;useinbandfec=1
 }
 
 func TestConnectHandlerInvalidMethod(t *testing.T) {
+	cleanup := setupTestGlobals(t)
+	defer cleanup()
+
 	app := &App{
 		peerConns: make(map[string]*webrtc.PeerConnection),
 		ctx:       context.Background(),
@@ -114,6 +135,9 @@ func TestConnectHandlerInvalidMethod(t *testing.T) {
 }
 
 func TestConnectHandlerInvalidOffer(t *testing.T) {
+	cleanup := setupTestGlobals(t)
+	defer cleanup()
+
 	app := &App{
 		peerConns: make(map[string]*webrtc.PeerConnection),
 		ctx:       context.Background(),
